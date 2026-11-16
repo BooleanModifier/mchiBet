@@ -97,6 +97,24 @@ header{height:calc(80px*var(--s))}
 .msg{color:#fff;text-align:center;font-weight:400;font-size:calc(28px*var(--s));padding:0 calc(48px*var(--s))}
 .msg b{font-weight:700}
 main.pad{padding-bottom:calc(190px*var(--s))}
+#slip{cursor:pointer}
+#confirm{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(30,30,50,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+#confirm.show{opacity:1;pointer-events:auto}
+.cbox{width:75%;background:#f4f4ff;border-radius:calc(22px*var(--s));padding:calc(34px*var(--s)) calc(26px*var(--s)) calc(30px*var(--s));text-align:center;color:var(--ink)}
+.cbox h2{font-size:calc(54px*var(--s));line-height:1.05;color:#00009e;font-weight:700;letter-spacing:calc(1px*var(--s))}
+.cbox p{margin:calc(26px*var(--s)) 0 calc(44px*var(--s));font-size:calc(27px*var(--s));line-height:1.2;font-weight:500}
+.cbox p b{font-weight:700}
+.cbtns{display:flex;gap:calc(14px*var(--s))}
+.cbtns button{flex:1;height:calc(54px*var(--s));border:0;border-radius:calc(8px*var(--s));font:700 calc(26px*var(--s)) 'Barlow',sans-serif;color:var(--ink);cursor:pointer}
+#cYes{background:var(--purple)}
+#cNo{background:#e4e4fc}
+#luck{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(30,30,50,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+#luck.show{opacity:1;pointer-events:auto}
+.lbox{position:relative;width:72%;height:62%;background:#f4f4ff;border-radius:calc(22px*var(--s));display:flex;align-items:center;justify-content:center;padding:calc(20px*var(--s))}
+.lbox h2{font-size:calc(76px*var(--s));line-height:1.1;color:#00009e;text-align:center;font-weight:700;letter-spacing:calc(1px*var(--s))}
+#lClose{position:absolute;top:calc(14px*var(--s));right:calc(14px*var(--s));background:none;border:0;padding:calc(6px*var(--s));cursor:pointer;color:var(--purple);line-height:0}
+#lClose svg{width:calc(34px*var(--s));height:calc(34px*var(--s));display:block}
+#confetti{position:absolute;inset:0;width:100%;height:100%;z-index:30;pointer-events:none}
 </style>
 </head>
 <body>
@@ -112,7 +130,7 @@ main.pad{padding-bottom:calc(190px*var(--s))}
   </main>
   <main class="mybets" id="mybets">My Bets<br><small>(window to be designed)</small></main>
 
-  <div id="slip"><button class="chev" id="chev" aria-label="Toggle bet slip"><span class="icn" data-ic="Arrow"></span></button>
+  <div id="slip" role="button" tabindex="0" aria-label="Confirm bet"><button class="chev" id="chev" aria-label="Toggle bet slip"><span class="icn" data-ic="Arrow"></span></button>
     <div class="msg" id="slipMsg"></div>
     
   </div>
@@ -123,6 +141,16 @@ main.pad{padding-bottom:calc(190px*var(--s))}
     <button id="navBets"><div class="icn" data-ic="MyBets"></div>My Bets</button>
   </nav>
 
+  <div id="confirm" role="dialog" aria-modal="true" aria-labelledby="cTitle" aria-hidden="true"><div class="cbox">
+    <h2 id="cTitle">Confirm Bet?</h2>
+    <p id="cText"></p>
+    <div class="cbtns"><button id="cYes">Confirm</button><button id="cNo">Cancel</button></div>
+  </div></div>
+  <div id="luck" role="dialog" aria-modal="true" aria-labelledby="lTitle" aria-hidden="true"><div class="lbox">
+    <button id="lClose" aria-label="Close"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5L29 29M29 5L5 29"/></svg></button>
+    <h2 id="lTitle">Good Luck!</h2>
+  </div></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
   <div id="scrim"></div>
   <aside id="drawer" aria-label="Edit values">
     <button id="close">Close</button>
@@ -192,6 +220,71 @@ $('rows').addEventListener('click',e=>{
   updateSlip();
 });
 $('chev').onclick=()=>{S.sel.clear();renderRows();};
+
+// Confirm dialog
+const dlg=$('confirm');
+function openConfirm(){
+  if(!S.sel.size)return;
+  const h=S.horses[[...S.sel][0]], d=parseOdds(h.odds), stake=S.balance;
+  const ret=d===null?null:stake*d+(S.stakeIncl?stake:0);
+  $('cText').innerHTML='<b>£'+money(stake)+'</b> @ <b>'+esc(h.odds)+'</b><br>returns<br><b>'+(ret===null?'£—':'£'+money(ret))+'</b>';
+  dlg.classList.add('show');dlg.setAttribute('aria-hidden','false');$('cYes').focus();
+}
+function closeConfirm(){dlg.classList.remove('show');dlg.setAttribute('aria-hidden','true');}
+$('slip').addEventListener('click',e=>{if(!e.target.closest('#chev'))openConfirm()});
+$('slip').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===$('slip')){e.preventDefault();openConfirm()}});
+$('cNo').onclick=closeConfirm;
+$('cYes').onclick=()=>{closeConfirm();openLuck()};
+
+// Good Luck dialog + confetti
+const lk=$('luck');
+function openLuck(){lk.classList.add('show');lk.setAttribute('aria-hidden','false');$('lClose').focus();blast();}
+function closeLuck(){
+  if(!lk.classList.contains('show'))return;
+  lk.classList.remove('show');lk.setAttribute('aria-hidden','true');
+  S.sel.clear();renderRows();
+}
+$('lClose').onclick=closeLuck;
+lk.addEventListener('click',e=>{if(e.target===lk)closeLuck()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLuck()});
+
+const cv=$('confetti'),cx=cv.getContext('2d');
+const CONF=['#ffffff','#ffffff','#9998d0','#7b79bd'];
+let parts=[],raf=0,lastT=0,CW=0,CH=0;
+function burst(n){
+  const k=Math.max(.7,CH/900);
+  for(let i=0;i<n;i++)for(const dir of [1,-1]){   // 1 = from bottom-left, -1 = from bottom-right
+    const ang=(50+Math.random()*35)*Math.PI/180, sp=(15+Math.random()*17)*k;
+    parts.push({x:dir>0?0:CW,y:CH,vx:dir*Math.cos(ang)*sp,vy:-Math.sin(ang)*sp,
+      w:(7+Math.random()*8)*k,h:(4+Math.random()*5)*k,rot:Math.random()*6.28,vr:(Math.random()-.5)*.35,
+      wob:Math.random()*6.28,ws:.15+Math.random()*.2,life:140+Math.random()*70,age:0,c:CONF[Math.floor(Math.random()*CONF.length)]});
+  }
+}
+function tick(t){
+  const dt=Math.min(2,(t-lastT)/16.67||1);lastT=t;
+  cx.clearRect(0,0,CW,CH);
+  cx.fillStyle='#fff';cx.shadowColor='rgba(40,40,90,.5)';cx.shadowBlur=4;
+  const drag=Math.pow(.985,dt),g=.5*Math.max(.7,CH/900)*dt;
+  parts=parts.filter(p=>p.age<p.life&&p.y<CH+30);
+  for(const p of parts){
+    p.vx*=drag;p.vy=p.vy*drag+g;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;p.wob+=p.ws*dt;p.age+=dt;
+    cx.save();cx.globalAlpha=Math.max(0,Math.min(1,(p.life-p.age)/40));
+    cx.translate(p.x,p.y);cx.rotate(p.rot);cx.scale(1,Math.cos(p.wob));
+    cx.fillStyle=p.c;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore();
+  }
+  if(parts.length){raf=requestAnimationFrame(tick)}else{raf=0;cx.clearRect(0,0,CW,CH)}
+}
+function blast(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const dpr=window.devicePixelRatio||1;
+  CW=app.clientWidth;CH=app.clientHeight;
+  cv.width=CW*dpr;cv.height=CH*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
+  burst(70);
+  setTimeout(()=>{if(lk.classList.contains('show'))burst(40)},220);
+  if(!raf){lastT=performance.now();raf=requestAnimationFrame(tick)}
+}
+dlg.addEventListener('click',e=>{if(e.target===dlg)closeConfirm()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm()});
 
 // Navigation
 function go(view){
