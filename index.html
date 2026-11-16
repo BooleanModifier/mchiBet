@@ -6,8 +6,6 @@
 <title>mchiBET</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Share+Tech+Mono&display=swap">
 <style>
-/* 
-  changing smthn to commit  */
 :root{
   --purple:#9998d0; --purple-d:#8a88bd; --panel:#f4f4ff; --ink:#26263a; --bg:#c9c9d1; --green:#2fd62f;
   --s:1;--nav:calc(78px*var(--s)); box-sizing:border-box;
@@ -117,6 +115,30 @@ main.pad{padding-bottom:calc(190px*var(--s))}
 #lClose{position:absolute;top:calc(14px*var(--s));right:calc(14px*var(--s));background:none;border:0;padding:calc(6px*var(--s));cursor:pointer;color:var(--purple);line-height:0}
 #lClose svg{width:calc(34px*var(--s));height:calc(34px*var(--s));display:block}
 #confetti{position:absolute;inset:0;width:100%;height:100%;z-index:30;pointer-events:none}
+.mybets{padding:calc(24px*var(--s)) calc(38px*var(--s)) calc(100px*var(--s));text-align:left;font-size:calc(21px*var(--s))}
+.wcard{border-radius:calc(16px*var(--s));overflow:hidden;background:#fff}
+.wtop{padding:calc(22px*var(--s)) calc(14px*var(--s)) calc(30px*var(--s))}
+.wtop h1{font-size:calc(46px*var(--s));line-height:1.08;font-weight:700}
+.wtop p{margin:calc(14px*var(--s)) 0 calc(18px*var(--s)) calc(8px*var(--s));font-size:calc(22px*var(--s));line-height:1.22;font-weight:500}
+.wtop p b{font-weight:700}
+.wbtn{border:0;border-radius:calc(8px*var(--s));font:500 calc(34px*var(--s)) 'Barlow',sans-serif;color:var(--ink);padding:calc(8px*var(--s));cursor:pointer}
+.wbtn.light{background:#dcdcff}
+.wbtn.dark{background:#7b79bd}
+.whist{background:var(--purple);padding:calc(26px*var(--s)) calc(14px*var(--s)) calc(30px*var(--s))}
+.whist h2{font-size:calc(28px*var(--s));color:#fff;font-weight:700;margin-bottom:calc(14px*var(--s))}
+#result{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(30,30,50,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+#result.show{opacity:1;pointer-events:auto}
+.rbox{padding:calc(26px*var(--s)) calc(22px*var(--s))}
+.rbanner{border-radius:calc(16px*var(--s));padding:calc(18px*var(--s)) calc(10px*var(--s));color:#111}
+.rbanner.win{background:#98ff98}
+.rbanner.lose{background:#ff9b9b}
+.rbanner h2{font-size:calc(42px*var(--s));line-height:1.12;font-weight:700}
+.rlab{font-size:calc(30px*var(--s));font-weight:400;margin-top:calc(22px*var(--s))}
+.rval{font-size:calc(52px*var(--s));font-weight:700;line-height:1.1}
+.rico{width:calc(130px*var(--s));height:calc(130px*var(--s));margin:calc(24px*var(--s)) auto 0}
+.rico img{width:100%;height:100%;object-fit:contain;display:block}
+.rbox .wbtn{width:100%;margin-top:calc(26px*var(--s));font-weight:700;font-size:calc(28px*var(--s));padding:calc(14px*var(--s))}
+.rbox .wbtn:disabled{opacity:.6;cursor:default}
 </style>
 </head>
 <body>
@@ -130,7 +152,12 @@ main.pad{padding-bottom:calc(190px*var(--s))}
     <div class="event-h"><div class="icn flag" data-ic="Flag"></div><div><h1 id="evTime"></h1><p class="mono" id="evInfo"></p></div></div>
     <div class="card"><h2>Win or Each Way</h2><div id="rows"></div></div>
   </main>
-  <main class="mybets" id="mybets">My Bets<br><small>(window to be designed)</small></main>
+  <main class="mybets" id="mybets">
+    <div class="wcard">
+      <div class="wtop"><h1>Current<br>Wager</h1><p id="bLines"></p><button class="wbtn light" id="bView">View Results</button></div>
+      <div class="whist"><h2>Wager History (<span id="bHist">0</span>)</h2><button class="wbtn dark" id="bShow">Show</button></div>
+    </div>
+  </main>
 
   <div id="slip" role="button" tabindex="0" aria-label="Confirm bet"><button class="chev" id="chev" aria-label="Toggle bet slip"><span class="icn" data-ic="Arrow"></span></button>
     <div class="msg" id="slipMsg"></div>
@@ -151,6 +178,12 @@ main.pad{padding-bottom:calc(190px*var(--s))}
   <div id="luck" role="dialog" aria-modal="true" aria-labelledby="lTitle" aria-hidden="true"><div class="lbox">
     <button id="lClose" aria-label="Close"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5L29 29M29 5L5 29"/></svg></button>
     <h2 id="lTitle">Good Luck!</h2>
+  </div></div>
+  <div id="result" role="dialog" aria-modal="true" aria-labelledby="rTitle" aria-hidden="true"><div class="cbox rbox">
+    <div id="rBanner" class="rbanner win"><h2 id="rTitle"></h2></div>
+    <div id="rWin"><div class="rlab">Winnings:</div><div class="rval" id="rVal"></div></div>
+    <div id="rLose"><div id="rIcon" class="rico"></div></div>
+    <button id="rBtn" class="wbtn light"></button>
   </div></div>
   <canvas id="confetti" aria-hidden="true"></canvas>
   <div id="scrim"></div>
@@ -177,6 +210,7 @@ const S={
   sel:new Set()
 };
 for(let n=S.horses.length;n<12;n++)S.horses.push({name:'Horse '+(n+1),jockey:'name man',trainer:'name train',age:'5',weight:'11-12',odds:'6/1',jersey:JERSEYS[(n*4+3)%25]});
+Object.assign(S,{bet:null,past:0,outcome:'win',status:'ongoing',view:'home'});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -236,7 +270,51 @@ function closeConfirm(){dlg.classList.remove('show');dlg.setAttribute('aria-hidd
 $('slip').addEventListener('click',e=>{if(!e.target.closest('#chev'))openConfirm()});
 $('slip').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===$('slip')){e.preventDefault();openConfirm()}});
 $('cNo').onclick=closeConfirm;
-$('cYes').onclick=()=>{closeConfirm();openLuck()};
+$('cYes').onclick=()=>{placeBet();closeConfirm();openLuck()};
+
+// View Results overlay (win / lose set in the My Bets side panel)
+const rs=$('result');
+(()=>{const box=$('rIcon'),img=new Image();img.alt='Sad horse';img.onerror=()=>{box.classList.add('ico');img.remove()};img.src='Assets/Icons/sadHorse.png';box.append(img)})();
+function openResult(){
+  const b=S.bet; if(!b)return;
+  const win=S.outcome==='win', btn=$('rBtn');
+  $('rBanner').className='rbanner '+(win?'win':'lose');
+  $('rTitle').textContent=win?'Winner!':'Better luck next time';
+  $('rWin').style.display=win?'':'none';
+  $('rLose').style.display=win?'none':'';
+  $('rVal').textContent='£'+(b.ret===null?'—':money(b.ret));
+  btn.textContent=win?(b.paid?'Added to balance':'Add to Balance'):'Play again';
+  btn.disabled=win&&!!b.paid;
+  rs.classList.add('show');rs.setAttribute('aria-hidden','false');btn.focus();
+  if(win)blast();
+}
+function closeResult(){rs.classList.remove('show');rs.setAttribute('aria-hidden','true');}
+$('bView').onclick=openResult;
+$('rBtn').onclick=()=>{
+  const b=S.bet;
+  if(S.outcome==='win'){
+    if(b&&!b.paid&&b.ret!==null){S.balance+=b.ret;b.paid=true;renderTop();buildDrawer();}
+    closeResult();
+  }else{closeResult();go('home');}
+};
+rs.addEventListener('click',e=>{if(e.target===rs)closeResult()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeResult()});
+
+// Last placed bet (shown on My Bets)
+function placeBet(){
+  const h=S.horses[[...S.sel][0]]; if(!h)return;
+  const d=parseOdds(h.odds), stake=S.balance;
+  if(S.bet)S.past++;
+  S.bet={time:S.time,horse:h.name,odds:h.odds,stake,ret:d===null?null:stake*d+(S.stakeIncl?stake:0)};
+  S.status='ongoing';
+  renderBets();
+}
+function renderBets(){
+  const b=S.bet;
+  $('bLines').innerHTML=b?'<b>'+esc(b.time)+'</b><br><b>'+esc(b.horse)+'</b><br>Potential return: <b>£'+(b.ret===null?'—':money(b.ret))+'</b><br>Status: <b>'+S.status+'</b>':'No bet placed yet.';
+  $('bView').style.display=b?'':'none';
+  $('bHist').textContent=S.past;
+}
 
 // Good Luck dialog + confetti
 const lk=$('luck');
@@ -282,7 +360,7 @@ function blast(){
   CW=app.clientWidth;CH=app.clientHeight;
   cv.width=CW*dpr;cv.height=CH*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
   burst(70);
-  setTimeout(()=>{if(lk.classList.contains('show'))burst(40)},220);
+  setTimeout(()=>{if(document.querySelector('#luck.show,#result.show'))burst(40)},220);
   if(!raf){lastT=performance.now();raf=requestAnimationFrame(tick)}
 }
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeConfirm()});
@@ -290,6 +368,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfirm()});
 
 // Navigation
 function go(view){
+  S.view=view;buildDrawer();renderBets();
   $('home').style.display=view==='home'?'':'none';
   $('mybets').style.display=view==='bets'?'block':'none';
   $('slip').style.visibility=view==='home'?'visible':'hidden';
@@ -337,8 +416,29 @@ function runnersBlock(){
     fs.append(grid,jerseyPicker(h)); box.append(fs);
   });
 }
+function balanceField(){
+  return field('Balance (£) - numbers only',S.balance,v=>{const n=parseFloat(v);if(!isFinite(n)||n<0)return;S.balance=n;renderTop();updateSlip()},'type="number" min="0" step="any" inputmode="decimal" data-sync="balance"');
+}
 function buildDrawer(){
   const f=$('fields'); f.innerHTML='';
+  if(S.view==='bets'){
+    const g=document.createElement('fieldset'); g.innerHTML='<legend>My Bets</legend>';
+    g.append(balanceField(),field('Wager history number',S.past,v=>{const n=parseInt(v,10);if(!(n>=0))return;S.past=n;renderBets()},'type="number" min="0" step="1" inputmode="numeric" data-sync="past"'));
+    const cb=document.createElement('label'); cb.className='chk';
+    cb.innerHTML='<input type="checkbox"'+(S.outcome==='win'?' checked':'')+'> <span></span>';
+    const sp=cb.querySelector('span');
+    const lbl=()=>{sp.textContent=S.outcome==='win'?'Result: WIN (untick for lose)':'Result: LOSE (tick for win)'};
+    lbl();
+    cb.querySelector('input').onchange=e=>{S.outcome=e.target.checked?'win':'lose';lbl()};
+    const sb=document.createElement('label'); sb.className='chk';
+    sb.innerHTML='<input type="checkbox"'+(S.status==='completed'?' checked':'')+'> <span></span>';
+    const ss=sb.querySelector('span');
+    const slbl=()=>{ss.textContent=S.status==='completed'?'Status: COMPLETED (untick for ongoing)':'Status: ONGOING (tick for completed)'};
+    slbl();
+    sb.querySelector('input').onchange=e=>{S.status=e.target.checked?'completed':'ongoing';slbl();renderBets()};
+    g.append(cb,sb); f.append(g);
+    return;
+  }
   const g=document.createElement('fieldset'); g.innerHTML='<legend>General</legend>';
   g.append(
     field('Balance (£) - numbers only',S.balance,v=>{const n=parseFloat(v);if(!isFinite(n)||n<0)return;S.balance=n;renderTop();updateSlip()},'type="number" min="0" step="any" inputmode="decimal" data-sync="balance"'),
