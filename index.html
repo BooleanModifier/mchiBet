@@ -313,6 +313,8 @@ function placeBet(){
   if(S.bet)S.past++;
   S.bet={time:S.time,horse:h.name,odds:h.odds,stake,ret:d===null?null:stake*d+(S.stakeIncl?stake:0)};
   S.status='ongoing';
+  S.balance=Math.max(0,S.balance-stake);
+  renderTop();buildDrawer();
   renderBets();
 }
 function renderBets(){
