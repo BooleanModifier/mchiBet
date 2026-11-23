@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Share+Tech+Mono&display=swap">
 <style>
 :root{
-  --purple:#9998d0; --purple-d:#8a88bd; --panel:#f4f4ff; --ink:#26263a; --bg:#c9c9d1; --green:#2fd62f;
+  --purple:#ab28b7; --purple-d:#9b0880; --panel:#f4f4ff; --ink:#26263a; --bg:#c9c9d1; --green:#2fd62f;
   --s:1;--nav:calc(78px*var(--s)); box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -210,7 +210,13 @@ const S={
   sel:new Set()
 };
 for(let n=S.horses.length;n<12;n++)S.horses.push({name:'Horse '+(n+1),jockey:'name man',trainer:'name train',age:'5',weight:'11-12',odds:'6/1',jersey:JERSEYS[(n*4+3)%25]});
-Object.assign(S,{bet:null,past:0,outcome:'win',status:'ongoing',view:'home'});
+Object.assign(S,{bet:null,past:0,outcome:'win',status:'ongoing',view:'home',showJockeys:true,showTrainers:true});
+
+// Default names: shuffled on every load, no repeats
+const NAMES=['Scott Chegg','Pastor Water','Matt Leather','Stan Lee Kneif','Pete Bog','Sue Donim','Reece Tart','Justin Case','Justin Thyme','Chris Pizza','Emma Royd','Baron Wasteland','Chris Packet','O’Sean Beach','Robin Banks','Clipclop Doubledrop','Ether Wood','Gary Chat','Max Capacity'];
+const POOL=(a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})(NAMES.slice());
+S.horses.forEach((h,i)=>{h.name=POOL[i]});
+
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -221,7 +227,7 @@ function renderRows(){
   $('rows').innerHTML=S.horses.slice(0,S.count).map((h,i)=>`
     <div class="row">
       <div class="num">${i+1}</div><div class="silk"><img src="${jsrc(h.jersey)}" alt="" onerror="this.parentNode.classList.add('ico');this.remove()"></div>
-      <div class="info"><b>${esc(h.name)}</b>Jockey: ${esc(h.jockey)}<br>Trainer: ${esc(h.trainer)}<br>Age: ${esc(h.age)} | Weight: ${esc(h.weight)}</div>
+      <div class="info"><b>${esc(h.name)}</b>${S.showJockeys?'Jockey: '+esc(h.jockey)+'<br>':''}${S.showTrainers?'Trainer: '+esc(h.trainer)+'<br>':''}Age: ${esc(h.age)} | Weight: ${esc(h.weight)}</div>
       <button class="odds${S.sel.has(i)?' sel':''}" data-i="${i}" aria-pressed="${S.sel.has(i)}">${esc(h.odds)}</button>
     </div>`).join('');
   updateSlip();
@@ -449,7 +455,14 @@ function buildDrawer(){
   const cb=document.createElement('label'); cb.className='chk';
   cb.innerHTML='<input type="checkbox"'+(S.stakeIncl?' checked':'')+'> Returns include the stake';
   cb.querySelector('input').onchange=e=>{S.stakeIncl=e.target.checked;updateSlip()};
-  g.append(cb); f.append(g);
+  const mk=(txt,key)=>{
+    const l=document.createElement('label'); l.className='chk';
+    l.innerHTML='<input type="checkbox"'+(S[key]?' checked':'')+'> '+txt;
+    l.querySelector('input').onchange=e=>{S[key]=e.target.checked;renderRows()};
+    return l;
+  };
+  g.append(cb,mk('Show jockey names','showJockeys'),mk('Show trainer names','showTrainers'));
+  f.append(g);
   const rb=document.createElement('div'); rb.id='runnersBox'; f.append(rb); runnersBlock();
 }
 const openD=o=>{$('drawer').classList.toggle('show',o);$('scrim').classList.toggle('show',o)};
