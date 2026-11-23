@@ -139,6 +139,9 @@ main.pad{padding-bottom:calc(190px*var(--s))}
 .rico img{width:100%;height:100%;object-fit:contain;display:block}
 .rbox .wbtn{width:100%;margin-top:calc(26px*var(--s));font-weight:700;font-size:calc(28px*var(--s));padding:calc(14px*var(--s))}
 .rbox .wbtn:disabled{opacity:.6;cursor:default}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(6px*var(--s));margin-bottom:calc(14px*var(--s))}
+.modes button{border:calc(2px*var(--s)) solid var(--purple);background:#fff;color:var(--ink);border-radius:calc(10px*var(--s));padding:calc(9px*var(--s)) calc(4px*var(--s));font:700 calc(14px*var(--s)) 'Barlow',sans-serif;cursor:pointer}
+.modes button[aria-pressed=true]{background:var(--purple);color:#fff}
 </style>
 </head>
 <body>
@@ -216,6 +219,7 @@ Object.assign(S,{bet:null,past:0,outcome:'win',status:'ongoing',view:'home',show
 const NAMES=['Scott Chegg','Pastor Water','Matt Leather','Stan Lee Kneif','Pete Bog','Sue Donim','Reece Tart','Justin Case','Justin Thyme','Chris Pizza','Emma Royd','Baron Wasteland','Chris Packet','O’Sean Beach','Robin Banks','Clipclop Doubledrop','Ether Wood','Gary Chat','Max Capacity'];
 const POOL=(a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})(NAMES.slice());
 S.horses.forEach((h,i)=>{h.name=POOL[i]});
+const DEFAULT=JSON.parse(JSON.stringify({balance:S.balance,time:S.time,going:S.going,count:S.count,horses:S.horses}));
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -424,11 +428,49 @@ function runnersBlock(){
     fs.append(grid,jerseyPicker(h)); box.append(fs);
   });
 }
+// Modes: Default / Race day 1 / Race day 2   [name, age, weight, jockey, trainer, odds]
+const PRESETS={
+  day1:{balance:50,time:'Albert Town',going:'Good to Soft',horses:[
+    ['Easy Does It','6','9-7','Liam Ashcombe','Daniel Whitaker','2/1'],
+    ['Midnight Runner','5','9-5','Callum Voss','Rebecca Henshaw','3/1'],
+    ['Silver Lining','6','9-6','Harry Fenwick','Thomas Bellamy','4/1'],
+    ['Copperfield Road','7','9-8','Jake Ellison','Martin Crowe','6/1'],
+    ['Northern Echo','5','9-4','Benji Clarke','Oliver Wren','8/1']]},
+  day2:{balance:100,time:'Bromford',going:'Good',horses:[
+    ['Here We Go','6','9-6','Toby Ashford','Marcus Ellery','3/1'],
+    ['Velvet Thunder','5','9-7','Freddie Lawson','Nathan Harcourt','7/2'],
+    ['Golden Nugget','6','9-5','Alfie Mercer','Simon Redford','4/1'],
+    ['Redford Belle','7','9-8','Charlie Winslow','Peter Langford','5/1'],
+    ['Whispering Jack','5','9-4','Ollie Hartwell','Edward Marlowe','8/1']]}
+};
+function applyMode(m){
+  S.mode=m;
+  if(m==='default'){
+    const d=JSON.parse(JSON.stringify(DEFAULT));
+    S.balance=d.balance;S.time=d.time;S.going=d.going;S.count=d.count;S.horses=d.horses;
+  }else{
+    const p=PRESETS[m];
+    S.balance=p.balance;S.time=p.time;S.going=p.going;S.count=p.horses.length;
+    p.horses.forEach((r,i)=>Object.assign(S.horses[i],{name:r[0],age:r[1],weight:r[2],jockey:r[3],trainer:r[4],odds:r[5]}));
+  }
+  S.sel.clear();S.bet=null;S.status='ongoing';
+  renderTop();renderRows();renderBets();buildDrawer();
+}
+function modeBar(){
+  const d=document.createElement('div'); d.className='modes';
+  [['default','Default'],['day1','Race day 1'],['day2','Race day 2']].forEach(([k,t])=>{
+    const b=document.createElement('button'); b.type='button'; b.textContent=t;
+    b.setAttribute('aria-pressed',(S.mode||'default')===k);
+    b.onclick=()=>applyMode(k);
+    d.append(b);
+  });
+  return d;
+}
 function balanceField(){
   return field('Balance (£) - numbers only',S.balance,v=>{const n=parseFloat(v);if(!isFinite(n)||n<0)return;S.balance=n;renderTop();updateSlip()},'type="number" min="0" step="any" inputmode="decimal" data-sync="balance"');
 }
 function buildDrawer(){
-  const f=$('fields'); f.innerHTML='';
+  const f=$('fields'); f.innerHTML=''; f.append(modeBar());
   if(S.view==='bets'){
     const g=document.createElement('fieldset'); g.innerHTML='<legend>My Bets</legend>';
     g.append(balanceField(),field('Wager history number',S.past,v=>{const n=parseInt(v,10);if(!(n>=0))return;S.past=n;renderBets()},'type="number" min="0" step="1" inputmode="numeric" data-sync="past"'));
